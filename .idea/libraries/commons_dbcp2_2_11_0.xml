@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="commons-dbcp2-2.11.0">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/commons-dbcp2-2.11.0/commons-dbcp2-2.11.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/commons-dbcp2-2.11.0/commons-dbcp2-2.11.0-tests.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/commons-dbcp2-2.11.0/commons-dbcp2-2.11.0-test-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/commons-dbcp2-2.11.0/commons-dbcp2-2.11.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
