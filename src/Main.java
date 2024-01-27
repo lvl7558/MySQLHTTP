@@ -1,9 +1,8 @@
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.sun.net.httpserver.*;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.sql.*;
 import java.util.concurrent.Executors;
@@ -103,10 +102,10 @@ public class Main {
                 }
             };
             //Virtual Threads
-            Thread.startVirtualThread(run);
+            //Thread.startVirtualThread(run);
             //Normal Threads
-//            Thread thread = new Thread(run);
-//            thread.start();
+            Thread thread = new Thread(run);
+            thread.start();
         }
 
         private void handleGetRequest(HttpExchange exchange) throws IOException {
@@ -114,7 +113,8 @@ public class Main {
 //            LOGGER.info("JDBS GET  Thread info {} ", Thread.currentThread());
             // Implement your GET logic here (e.g., retrieve data from the database)
             try (Connection connection = dataSource.getConnection()) {
-                String query = "SELECT * FROM tempatures";
+
+                String query = "SELECT * FROM temps";
                 try (PreparedStatement statement = connection.prepareStatement(query);
                      ResultSet resultSet = statement.executeQuery()) {
 
@@ -135,18 +135,98 @@ public class Main {
         }
 
         private void handlePostRequest(HttpExchange exchange) throws IOException {
-            //make post thing
-            sendResponse(exchange, 200, "POST request handled");
+            try (Connection connection = dataSource.getConnection()) {
+                String query = "INSERT INTO temps (year, temp) VALUES (?, ?)";
+                try (PreparedStatement statement = connection.prepareStatement(query)) {
+                    // Extract data from the request and set parameters
+                    InputStream requestBody = exchange.getRequestBody();
+                    InputStreamReader isr = new InputStreamReader(requestBody);
+                    BufferedReader br = new BufferedReader(isr);
+
+                    // Assuming JSON data in the request body
+                    JsonObject json = JsonParser.parseReader(br).getAsJsonObject();
+                    int year = json.getAsJsonPrimitive("year").getAsInt();
+                    double temp = json.getAsJsonPrimitive("temp").getAsDouble();
+
+                    statement.setInt(1, year);
+                    statement.setDouble(2, temp);
+
+                    // Execute the update
+                    int affectedRows = statement.executeUpdate();
+
+                    if (affectedRows > 0) {
+                        sendResponse(exchange, 200, "Data inserted successfully");
+                    } else {
+                        sendResponse(exchange, 500, "Failed to insert data");
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                sendResponse(exchange, 500, "Internal Server Error");
+            }
         }
 
         private void handlePutRequest(HttpExchange exchange) throws IOException {
-            //make a put request
-            sendResponse(exchange, 200, "PUT request handled");
+            try (Connection connection = dataSource.getConnection()) {
+            String query = "UPDATE temps SET temp = ? WHERE year = ?";
+            try (PreparedStatement statement = connection.prepareStatement(query)) {
+                // Extract data from the request and set parameters
+                InputStream requestBody = exchange.getRequestBody();
+                InputStreamReader isr = new InputStreamReader(requestBody);
+                BufferedReader br = new BufferedReader(isr);
+
+                // Assuming JSON data in the request body
+                JsonObject json = JsonParser.parseReader(br).getAsJsonObject();
+                int year = json.getAsJsonPrimitive("year").getAsInt();
+                double temp = json.getAsJsonPrimitive("temp").getAsDouble();
+
+                statement.setDouble(1, temp);
+                statement.setInt(2, year);
+
+                // Execute the update
+                int affectedRows = statement.executeUpdate();
+
+                if (affectedRows > 0) {
+                    sendResponse(exchange, 200, "Data updated successfully");
+                } else {
+                    sendResponse(exchange, 404, "Data not found or failed to update");
+                }
+                }
+            }catch (SQLException e) {
+                e.printStackTrace();
+                sendResponse(exchange, 500, "Internal Server Error");
+            }
         }
 
+
         private void handleDeleteRequest(HttpExchange exchange) throws IOException {
-            //make a delete
-            sendResponse(exchange, 200, "DELETE request handled");
+            try (Connection connection = dataSource.getConnection()) {
+                String query = "DELETE FROM temps WHERE year = ?";
+                try (PreparedStatement statement = connection.prepareStatement(query)) {
+                    // Extract data from the request and set parameters
+                    InputStream requestBody = exchange.getRequestBody();
+                    InputStreamReader isr = new InputStreamReader(requestBody);
+                    BufferedReader br = new BufferedReader(isr);
+
+                    // Assuming JSON data in the request body
+                    JsonObject json = JsonParser.parseReader(br).getAsJsonObject();
+                    int year = json.getAsJsonPrimitive("year").getAsInt();
+
+                    statement.setInt(1, year);
+
+                    // Execute the delete
+                    int affectedRows = statement.executeUpdate();
+
+                    if (affectedRows > 0) {
+                        sendResponse(exchange, 200, "Data deleted successfully");
+                    } else {
+                        sendResponse(exchange, 404, "Data not found or failed to delete");
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                sendResponse(exchange, 500, "Internal Server Error");
+            }
         }
         //Send a responsed back to confirm that message was good
         private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
