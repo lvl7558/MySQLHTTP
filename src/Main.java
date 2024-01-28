@@ -40,8 +40,8 @@ public class Main {
         // Start the HTTP server
         server.start();
         // Schedule performance monitoring task
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-        scheduler.scheduleAtFixedRate(Main::monitorPerformance, 0, 5, TimeUnit.SECONDS);
+//        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+//        scheduler.scheduleAtFixedRate(Main::monitorPerformance, 0, 5, TimeUnit.SECONDS);
     }
 
     private static void monitorPerformance() {
@@ -62,7 +62,7 @@ public class Main {
         writeToFile("cpuusage.csv", cpuUsage + "");
         writeToFile("ramusage.csv", usedMemory / (1024 * 1024) + "," + maxMemory / (1024 * 1024));
     }
-    //add the to files
+    //add the too files
     private static void writeToFile(String fileName, String data) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName, true))) {
             writer.write(data);
@@ -102,10 +102,10 @@ public class Main {
                 }
             };
             //Virtual Threads
-            //Thread.startVirtualThread(run);
+            Thread.startVirtualThread(run);
             //Normal Threads
-            Thread thread = new Thread(run);
-            thread.start();
+//            Thread thread = new Thread(run);
+//            thread.start();
         }
 
         private void handleGetRequest(HttpExchange exchange) throws IOException {
@@ -168,33 +168,39 @@ public class Main {
 
         private void handlePutRequest(HttpExchange exchange) throws IOException {
             try (Connection connection = dataSource.getConnection()) {
-            String query = "UPDATE temps SET temp = ? WHERE year = ?";
-            try (PreparedStatement statement = connection.prepareStatement(query)) {
-                // Extract data from the request and set parameters
-                InputStream requestBody = exchange.getRequestBody();
-                InputStreamReader isr = new InputStreamReader(requestBody);
-                BufferedReader br = new BufferedReader(isr);
+                connection.setAutoCommit(false);
+                String query = "UPDATE temps SET temp = ? WHERE year = ?";
+                try (PreparedStatement statement = connection.prepareStatement(query)) {
+                    // Extract data from the request and set parameters
+                    InputStream requestBody = exchange.getRequestBody();
+                    InputStreamReader isr = new InputStreamReader(requestBody);
+                    BufferedReader br = new BufferedReader(isr);
 
-                // Assuming JSON data in the request body
-                JsonObject json = JsonParser.parseReader(br).getAsJsonObject();
-                int year = json.getAsJsonPrimitive("year").getAsInt();
-                double temp = json.getAsJsonPrimitive("temp").getAsDouble();
+                    // Assuming JSON data in the request body
+                    JsonObject json = JsonParser.parseReader(br).getAsJsonObject();
+                    int year = json.getAsJsonPrimitive("year").getAsInt();
+                    double temp = json.getAsJsonPrimitive("temp").getAsDouble();
 
-                statement.setDouble(1, temp);
-                statement.setInt(2, year);
+                    statement.setDouble(1, temp);
+                    statement.setInt(2, year);
 
-                // Execute the update
-                int affectedRows = statement.executeUpdate();
+                    // Execute the update
+                    int affectedRows = statement.executeUpdate();
 
-                if (affectedRows > 0) {
-                    sendResponse(exchange, 200, "Data updated successfully");
-                } else {
-                    sendResponse(exchange, 404, "Data not found or failed to update");
-                }
+                    if (affectedRows > 0) {
+                        sendResponse(exchange, 200, "Data updated successfully");
+                    } else {
+                        sendResponse(exchange, 404, "Data not found or failed to update");
+                    }
+                    connection.commit();
+                }catch (SQLException e){
+                    e.printStackTrace();
+                    sendResponse(exchange, 500, "Internal Server Error");
                 }
             }catch (SQLException e) {
                 e.printStackTrace();
                 sendResponse(exchange, 500, "Internal Server Error");
+
             }
         }
 
@@ -220,7 +226,7 @@ public class Main {
                     if (affectedRows > 0) {
                         sendResponse(exchange, 200, "Data deleted successfully");
                     } else {
-                        sendResponse(exchange, 404, "Data not found or failed to delete");
+                        sendResponse(exchange, 200, "Data not found or failed to delete");
                     }
                 }
             } catch (SQLException e) {
