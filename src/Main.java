@@ -28,9 +28,10 @@ public class Main {
         dataSource.setUrl(JDBC_URL);
         dataSource.setUsername(JDBC_USER);
         dataSource.setPassword(JDBC_PASSWORD);
-        dataSource.setMinIdle(5);
-        dataSource.setMaxIdle(10);
-        dataSource.setMaxOpenPreparedStatements(100);
+        dataSource.setMinIdle(Integer.MAX_VALUE); // Set to maximum possible value
+        dataSource.setMaxIdle(Integer.MAX_VALUE); // Set to maximum possible value
+        dataSource.setMaxTotal(Integer.MAX_VALUE); // Set to maximum possible value
+        dataSource.setMaxOpenPreparedStatements(Integer.MAX_VALUE); // Set to maximum possible value
 
         // Set up the HTTP server
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
@@ -59,8 +60,8 @@ public class Main {
 //        System.out.println("Max Memory: " + maxMemory / (1024 * 1024) + " MB");
 
         //Add to csv file
-        writeToFile("cpuusage.csv", cpuUsage + "");
-        writeToFile("ramusage.csv", usedMemory / (1024 * 1024) + "," + maxMemory / (1024 * 1024));
+//        writeToFile("cpuusage.csv", cpuUsage + "");
+//        writeToFile("ramusage.csv", usedMemory / (1024 * 1024) + "," + maxMemory / (1024 * 1024));
     }
     //add the too files
     private static void writeToFile(String fileName, String data) {
@@ -114,7 +115,8 @@ public class Main {
             // Implement your GET logic here (e.g., retrieve data from the database)
             try (Connection connection = dataSource.getConnection()) {
 
-                String query = "SELECT * FROM temps";
+                String query = "SELECT * FROM temps LIMIT 1";
+
                 try (PreparedStatement statement = connection.prepareStatement(query);
                      ResultSet resultSet = statement.executeQuery()) {
 
